@@ -19,9 +19,9 @@ Track what's built, when, and current status.
 
 | Feature | Status | Date | Notes |
 |---------|--------|------|-------|
-| 1.1 | Typing exercise UI | Pending | | |
-| 1.2 | WPM and accuracy calculation | Pending | | |
-| 1.3 | Results screen | Pending | | |
+| 1.1 | Typing exercise UI | Done | 2025-03-12 | Tailwind v4, theme toggle, typing components |
+| 1.2 | WPM and accuracy calculation | Done | 2025-03-12 | typingMetrics.ts, useTypingSession hook |
+| 1.3 | Results screen | Done | 2025-03-12 | Inline results + ResultsPage component |
 
 ## Phase 2: Mistake Analysis
 
