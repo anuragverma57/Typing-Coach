@@ -27,27 +27,28 @@ Track what's built, when, and current status.
 
 | Feature | Status | Date | Notes |
 |---------|--------|------|-------|
-| 2.1 | Character-level tracking | Pending | | |
-| 2.2 | Mistake report | Pending | | |
-| 2.3 | Per-key accuracy heatmap | Pending | | |
-| 2.4 | Improvement suggestions | Pending | | |
+| 2.1 | Character-level tracking | Done | 2025-03-12 | Mistake type, stored in SessionResult |
+| 2.2 | Mistake report | Done | 2025-03-12 | MistakeReport component, grouped by character |
+| 2.3 | Per-key accuracy heatmap | Done | 2025-03-12 | KeyAccuracyHeatmap, QWERTY layout |
+| 2.4 | Improvement suggestions | Done | 2025-03-12 | ImprovementSuggestions, row-based suggestions |
 
-## Phase 3: Structured Lessons
-
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| 3.1 | Lesson data structure | Pending | | |
-| 3.2 | Lesson selector UI | Pending | | |
-| 3.3 | Lesson content | Pending | | |
-
-## Phase 4: Backend & Persistence
+## Phase 3: Backend & Persistence
 
 | Feature | Status | Date | Notes |
 |---------|--------|------|-------|
-| 4.1 | Go API endpoints | Pending | | |
-| 4.2 | Database setup | Pending | | |
-| 4.3 | Store sessions | Pending | | |
-| 4.4 | Connect React to API | Pending | | |
+| 3.1 | Database setup | Pending | | |
+| 3.2 | Lessons API (GET /api/lessons, GET /api/lessons/:id) | Pending | | |
+| 3.3 | Sessions API (POST /api/sessions) | Pending | | |
+| 3.4 | Seed lesson content | Pending | | |
+| 3.5 | Connect React to API | Pending | | |
+
+## Phase 4: Structured Lessons
+
+| Feature | Status | Date | Notes |
+|---------|--------|------|-------|
+| 4.1 | Lesson data structure (types) | Pending | | |
+| 4.2 | Lesson selector UI | Pending | | |
+| 4.3 | Lesson content display | Pending | | |
 
 ## Phase 5: User Accounts & Dashboard
 

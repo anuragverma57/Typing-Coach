@@ -44,42 +44,17 @@ Reference for Frontend and Backend agents. Each feature has a number. When instr
 
 ### Backend Responsibilities
 
-- None for this feature. Analysis is client-side. Backend may consume this data in Feature 4.
+- None for this feature. Analysis is client-side. Backend may consume this data in Feature 3.
 
 ---
 
-## Feature 3: Structured Lessons
+## Feature 3: Backend & Persistence
 
 **Phase**: 3  
-**Goal**: Guided modules (home row, top row, bottom row, words, sentences).
+**Goal**: Set up database and API so lessons and sessions can be stored and served.
 
 ### Frontend Responsibilities
 
-- Build lesson selector UI: list or grid of available lessons
-- Add routing/navigation to switch between lesson list and typing exercise
-- Display lesson metadata: name, description, difficulty
-- Fetch lesson content from Backend API (when Feature 4 is done) or use static JSON for now
-- Pass selected lesson content to typing exercise component from Feature 1
-- Lesson types: beginner, home row, top row, bottom row, word typing, sentence typing
-
-### Backend Responsibilities
-
-- Define lesson data structure (ID, name, description, content, type/category)
-- Provide lessons via JSON file or in-memory for now (DB in Feature 4)
-- Expose `GET /api/lessons` — list all lessons
-- Expose `GET /api/lessons/:id` — get single lesson with content
-- Ensure CORS allows frontend origin
-
----
-
-## Feature 4: Backend & Persistence
-
-**Phase**: 4  
-**Goal**: Store lessons, sessions, and user progress.
-
-### Frontend Responsibilities
-
-- Replace static/mock lesson data with API calls to Backend
 - Add API client (fetch or axios): base URL configurable (e.g. env variable)
 - After typing session ends, send results to Backend: `POST /api/sessions` with payload (lessonId, wpm, accuracy, mistakes, duration)
 - Handle loading and error states when calling API
@@ -87,13 +62,35 @@ Reference for Frontend and Backend agents. Each feature has a number. When instr
 
 ### Backend Responsibilities
 
-- Set up database: SQLite (dev) or PostgreSQL
+- Set up database: PostgreSQL (and/or MongoDB per project setup)
 - Create schema: lessons table, sessions table (id, lesson_id, user_id nullable, wpm, accuracy, mistakes_json, duration_sec, created_at)
-- Implement `GET /api/lessons` — from DB
-- Implement `GET /api/lessons/:id` — from DB
+- Define lesson data structure (ID, name, description, content, type/category)
+- Implement `GET /api/lessons` — list all lessons from DB
+- Implement `GET /api/lessons/:id` — get single lesson with content
 - Implement `POST /api/sessions` — store session result (user_id nullable for anonymous)
+- Seed initial lesson content (beginner, home row, top row, bottom row, words, sentences)
 - Add CORS middleware for frontend origin
 - Return JSON with proper Content-Type
+
+---
+
+## Feature 4: Structured Lessons
+
+**Phase**: 4  
+**Goal**: Guided modules (home row, top row, bottom row, words, sentences). Depends on Feature 3 API.
+
+### Frontend Responsibilities
+
+- Build lesson selector UI: list or grid of available lessons
+- Add routing/navigation to switch between lesson list and typing exercise
+- Display lesson metadata: name, description, difficulty
+- Fetch lesson content from Backend API (Feature 3)
+- Pass selected lesson content to typing exercise component from Feature 1
+- Lesson types: beginner, home row, top row, bottom row, word typing, sentence typing
+
+### Backend Responsibilities
+
+- None for this feature. Lessons API is implemented in Feature 3. Add more lesson content if needed.
 
 ---
 
@@ -138,7 +135,7 @@ Reference for Frontend and Backend agents. Each feature has a number. When instr
 
 ### Backend Responsibilities
 
-- Add Hindi lesson content to DB (or JSON)
+- Add Hindi lesson content to DB
 - Ensure `GET /api/lessons` supports language filter: `?lang=hindi` or `?lang=en`
 - Add `language` field to lessons table if not present
 - Store and return Hindi content with correct encoding (UTF-8)
@@ -168,6 +165,7 @@ Reference for Frontend and Backend agents. Each feature has a number. When instr
 ## Adding New Features
 
 When a new feature is requested, the tutor will:
+
 1. Assign the next feature number (e.g. Feature 8)
 2. Add a new section to this document
 3. Fill in Frontend and Backend responsibilities

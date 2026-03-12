@@ -3,6 +3,9 @@ import { Card } from '../components/ui/Card'
 import { TypingText } from '../components/typing/TypingText'
 import { LiveMetrics } from '../components/typing/LiveMetrics'
 import { SessionControls } from '../components/typing/SessionControls'
+import { MistakeReport } from '../components/typing/MistakeReport'
+import { KeyAccuracyHeatmap } from '../components/typing/KeyAccuracyHeatmap'
+import { ImprovementSuggestions } from '../components/typing/ImprovementSuggestions'
 
 export function TypingPracticePage() {
   const {
@@ -59,38 +62,63 @@ export function TypingPracticePage() {
       </Card>
 
       {result && (
-        <Card className="text-center space-y-4">
-          <h3 className="text-lg font-medium text-text-primary">
-            Session Complete
-          </h3>
-          <div className="flex justify-center gap-8">
-            <div>
-              <div className="text-2xl font-semibold text-accent">
-                {result.wpm}
+        <Card className="space-y-6">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-text-primary">
+              Session Complete
+            </h3>
+            <div className="mt-4 flex justify-center gap-8">
+              <div>
+                <div className="text-2xl font-semibold text-accent">
+                  {result.wpm}
+                </div>
+                <div className="text-sm text-text-muted">WPM</div>
               </div>
-              <div className="text-sm text-text-muted">WPM</div>
-            </div>
-            <div>
-              <div className="text-2xl font-semibold text-accent">
-                {result.accuracy}%
+              <div>
+                <div className="text-2xl font-semibold text-accent">
+                  {result.accuracy}%
+                </div>
+                <div className="text-sm text-text-muted">Accuracy</div>
               </div>
-              <div className="text-sm text-text-muted">Accuracy</div>
-            </div>
-            <div>
-              <div className="text-2xl font-semibold text-accent">
-                {Math.floor(result.durationSec / 60)}:
-                {(Math.floor(result.durationSec) % 60)
-                  .toString()
-                  .padStart(2, '0')}
+              <div>
+                <div className="text-2xl font-semibold text-accent">
+                  {Math.floor(result.durationSec / 60)}:
+                  {(Math.floor(result.durationSec) % 60)
+                    .toString()
+                    .padStart(2, '0')}
+                </div>
+                <div className="text-sm text-text-muted">Time</div>
               </div>
-              <div className="text-sm text-text-muted">Time</div>
             </div>
           </div>
-          <SessionControls
-            status="finished"
-            onStart={startSession}
-            onReset={resetSession}
-          />
+
+          {result.mistakes.length > 0 ? (
+            <div className="border-t border-[var(--color-border)] pt-6 space-y-6">
+              <MistakeReport mistakes={result.mistakes} />
+              <KeyAccuracyHeatmap
+                mistakes={result.mistakes}
+                targetText={targetText}
+                userInput={userInput}
+              />
+              <ImprovementSuggestions
+                mistakes={result.mistakes}
+                targetText={targetText}
+                userInput={userInput}
+              />
+            </div>
+          ) : (
+            <p className="text-center text-sm text-text-muted">
+              Perfect accuracy — no mistakes!
+            </p>
+          )}
+
+          <div className="flex justify-center">
+            <SessionControls
+              status="finished"
+              onStart={startSession}
+              onReset={resetSession}
+            />
+          </div>
         </Card>
       )}
     </div>

@@ -50,8 +50,17 @@ export function useTypingSession(
     const durationSec = (Date.now() - startTime) / 1000
     const totalChars = userInput.length
     let correctChars = 0
+    const mistakes: { expected: string; typed: string; position: number }[] = []
     for (let i = 0; i < totalChars; i++) {
-      if (userInput[i] === targetText[i]) correctChars++
+      if (userInput[i] === targetText[i]) {
+        correctChars++
+      } else {
+        mistakes.push({
+          expected: targetText[i],
+          typed: userInput[i],
+          position: i,
+        })
+      }
     }
     const wpm = calculateWPM(correctChars, durationSec)
     const accuracy = calculateAccuracy(correctChars, totalChars)
@@ -61,6 +70,7 @@ export function useTypingSession(
       correctChars,
       totalChars,
       durationSec,
+      mistakes,
     })
     setStatus('finished')
   }, [startTime, userInput, targetText])

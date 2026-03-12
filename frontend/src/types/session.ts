@@ -9,10 +9,17 @@ export type TypingSessionState = {
   status: SessionStatus
 }
 
+export type Mistake = {
+  expected: string
+  typed: string
+  position: number
+}
+
 export type SessionResult = {
   wpm: number
   accuracy: number
   correctChars: number
   totalChars: number
   durationSec: number
+  mistakes: Mistake[]
 }
