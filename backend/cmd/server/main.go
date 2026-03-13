@@ -8,6 +8,8 @@ import (
 
 	"typingcoach/backend/config"
 	"typingcoach/backend/internal/database"
+	"typingcoach/backend/internal/lessons"
+	"typingcoach/backend/internal/sessions"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -28,6 +30,12 @@ func main() {
 	} else {
 		postgres = pg
 		defer postgres.Close()
+		if err := database.MigratePostgres(pg); err != nil {
+			log.Fatalf("PostgreSQL migration: %v", err)
+		}
+		if err := lessons.Seed(pg); err != nil {
+			log.Fatalf("Lesson seed: %v", err)
+		}
 	}
 
 	if mc, err := database.NewMongo(cfg.MongoDBURI); err != nil {
@@ -57,6 +65,19 @@ func main() {
 	})
 
 	app.Get("/api/health", healthHandler(postgres, mongoClient))
+
+	var lessonRepo *lessons.Repository
+	var sessionRepo *sessions.Repository
+	if postgres != nil {
+		lessonRepo = lessons.NewRepository(postgres)
+		sessionRepo = sessions.NewRepository(postgres)
+	}
+	lessonHandler := lessons.NewHandler(lessonRepo)
+	sessionHandler := sessions.NewHandler(sessionRepo)
+
+	app.Get("/api/lessons", lessonHandler.List)
+	app.Get("/api/lessons/:id", lessonHandler.GetByID)
+	app.Post("/api/sessions", sessionHandler.Create)
 
 	addr := ":" + cfg.Port
 	log.Printf("Server starting on %s", addr)

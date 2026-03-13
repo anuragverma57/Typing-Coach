@@ -1,4 +1,7 @@
+import { useCallback } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTypingSession } from '../hooks/useTypingSession'
+import { createSession } from '../api/sessions'
 import { Card } from '../components/ui/Card'
 import { TypingText } from '../components/typing/TypingText'
 import { LiveMetrics } from '../components/typing/LiveMetrics'
@@ -6,8 +9,28 @@ import { SessionControls } from '../components/typing/SessionControls'
 import { MistakeReport } from '../components/typing/MistakeReport'
 import { KeyAccuracyHeatmap } from '../components/typing/KeyAccuracyHeatmap'
 import { ImprovementSuggestions } from '../components/typing/ImprovementSuggestions'
+import { Button } from '../components/ui/Button'
+import type { Lesson } from '../types/lesson'
+import type { SessionResult } from '../types/session'
 
 export function TypingPracticePage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const lesson = (location.state as { lesson?: Lesson | null })?.lesson ?? null
+
+  const onSessionComplete = useCallback(
+    (result: SessionResult) => {
+      createSession({
+        lessonId: lesson?.id ?? null,
+        wpm: result.wpm,
+        accuracy: result.accuracy,
+        mistakes: result.mistakes,
+        durationSec: Math.round(result.durationSec),
+      }).catch(() => {})
+    },
+    [lesson?.id]
+  )
+
   const {
     targetText,
     userInput,
@@ -18,14 +41,26 @@ export function TypingPracticePage() {
     resetSession,
     handleKeyDown,
     inputRef,
-  } = useTypingSession()
+  } = useTypingSession({
+    initialText: lesson?.content,
+    onSessionComplete,
+  })
+
+  const title = lesson?.name ?? 'Free Practice'
 
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-xl font-medium text-text-primary">
-          Free Practice
-        </h2>
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            className="text-text-muted"
+            onClick={() => navigate('/')}
+          >
+            ← Back
+          </Button>
+        </div>
+        <h2 className="mt-2 text-xl font-medium text-text-primary">{title}</h2>
         <p className="mt-1 text-sm text-text-muted">
           Type the text below. Use keyboard only — no copy-paste.
         </p>
