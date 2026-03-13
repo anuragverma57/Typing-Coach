@@ -5,7 +5,8 @@ import (
 )
 
 type Config struct {
-	Port string
+	Port      string
+	JWTSecret string
 
 	PostgresHost     string
 	PostgresPort     string
@@ -18,7 +19,8 @@ type Config struct {
 
 func Load() *Config {
 	return &Config{
-		Port: getEnv("PORT", "8080"),
+		Port:      getEnv("PORT", "8080"),
+		JWTSecret: getEnv("JWT_SECRET", "dev-secret-change-in-production"),
 
 		PostgresHost:     getEnv("POSTGRES_HOST", "localhost"),
 		PostgresPort:     getEnv("POSTGRES_PORT", "5434"),

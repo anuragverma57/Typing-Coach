@@ -7,9 +7,12 @@ import (
 	"os"
 
 	"typingcoach/backend/config"
+	"typingcoach/backend/internal/auth"
 	"typingcoach/backend/internal/database"
 	"typingcoach/backend/internal/lessons"
+	"typingcoach/backend/internal/middleware"
 	"typingcoach/backend/internal/sessions"
+	"typingcoach/backend/internal/users"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -68,16 +71,28 @@ func main() {
 
 	var lessonRepo *lessons.Repository
 	var sessionRepo *sessions.Repository
+	var authRepo *auth.Repository
 	if postgres != nil {
 		lessonRepo = lessons.NewRepository(postgres)
 		sessionRepo = sessions.NewRepository(postgres)
+		authRepo = auth.NewRepository(postgres)
 	}
+
 	lessonHandler := lessons.NewHandler(lessonRepo)
 	sessionHandler := sessions.NewHandler(sessionRepo)
+	authHandler := auth.NewHandler(authRepo, cfg.JWTSecret)
+	usersHandler := users.NewHandler(sessionRepo)
+
+	app.Post("/api/auth/signup", authHandler.Signup)
+	app.Post("/api/auth/login", authHandler.Login)
 
 	app.Get("/api/lessons", lessonHandler.List)
 	app.Get("/api/lessons/:id", lessonHandler.GetByID)
+
+	app.Use("/api/sessions", middleware.OptionalAuth(cfg.JWTSecret))
 	app.Post("/api/sessions", sessionHandler.Create)
+
+	app.Get("/api/users/me/sessions", middleware.Auth(cfg.JWTSecret), usersHandler.GetMySessions)
 
 	addr := ":" + cfg.Port
 	log.Printf("Server starting on %s", addr)
