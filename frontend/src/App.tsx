@@ -1,9 +1,21 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { MainLayout } from './components/layout/MainLayout'
+import { LessonsPage } from './pages/LessonsPage'
+import { TypingPracticePage } from './pages/TypingPracticePage'
+
 function App() {
   return (
-    <div>
-      <h1>Typing Coach</h1>
-      <p>Welcome. Phase 0 complete.</p>
-    </div>
+    <ThemeProvider>
+      <BrowserRouter>
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<LessonsPage />} />
+            <Route path="/practice" element={<TypingPracticePage />} />
+          </Routes>
+        </MainLayout>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 

@@ -19,35 +19,36 @@ Track what's built, when, and current status.
 
 | Feature | Status | Date | Notes |
 |---------|--------|------|-------|
-| 1.1 | Typing exercise UI | Pending | | |
-| 1.2 | WPM and accuracy calculation | Pending | | |
-| 1.3 | Results screen | Pending | | |
+| 1.1 | Typing exercise UI | Done | 2025-03-12 | Tailwind v4, theme toggle, typing components |
+| 1.2 | WPM and accuracy calculation | Done | 2025-03-12 | typingMetrics.ts, useTypingSession hook |
+| 1.3 | Results screen | Done | 2025-03-12 | Inline results + ResultsPage component |
 
 ## Phase 2: Mistake Analysis
 
 | Feature | Status | Date | Notes |
 |---------|--------|------|-------|
-| 2.1 | Character-level tracking | Pending | | |
-| 2.2 | Mistake report | Pending | | |
-| 2.3 | Per-key accuracy heatmap | Pending | | |
-| 2.4 | Improvement suggestions | Pending | | |
+| 2.1 | Character-level tracking | Done | 2025-03-12 | Mistake type, stored in SessionResult |
+| 2.2 | Mistake report | Done | 2025-03-12 | MistakeReport component, grouped by character |
+| 2.3 | Per-key accuracy heatmap | Done | 2025-03-12 | KeyAccuracyHeatmap, QWERTY layout |
+| 2.4 | Improvement suggestions | Done | 2025-03-12 | ImprovementSuggestions, row-based suggestions |
 
-## Phase 3: Structured Lessons
-
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| 3.1 | Lesson data structure | Pending | | |
-| 3.2 | Lesson selector UI | Pending | | |
-| 3.3 | Lesson content | Pending | | |
-
-## Phase 4: Backend & Persistence
+## Phase 3: Backend & Persistence
 
 | Feature | Status | Date | Notes |
 |---------|--------|------|-------|
-| 4.1 | Go API endpoints | Pending | | |
-| 4.2 | Database setup | Pending | | |
-| 4.3 | Store sessions | Pending | | |
-| 4.4 | Connect React to API | Pending | | |
+| 3.1 | Database setup | Done | 2025-03-13 | PostgreSQL + MongoDB, Fiber, migrations |
+| 3.2 | Lessons API (GET /api/lessons, GET /api/lessons/:id) | Done | 2025-03-13 | |
+| 3.3 | Sessions API (POST /api/sessions) | Done | 2025-03-13 | user_id nullable for anonymous |
+| 3.4 | Seed lesson content | Done | 2025-03-13 | beginner, home_row, top_row, bottom_row, words, sentences |
+| 3.5 | Connect React to API | Done | 2025-03-13 | API client, POST sessions, fetch lessons |
+
+## Phase 4: Structured Lessons
+
+| Feature | Status | Date | Notes |
+|---------|--------|------|-------|
+| 4.1 | Lesson data structure (types) | Done | 2025-03-13 | types/lesson.ts |
+| 4.2 | Lesson selector UI | Done | 2025-03-13 | LessonsPage, grid of lessons |
+| 4.3 | Lesson content display | Done | 2025-03-13 | TypingPracticePage receives lesson via route state |
 
 ## Phase 5: User Accounts & Dashboard
 
