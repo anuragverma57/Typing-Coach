@@ -15,6 +15,15 @@ export type Mistake = {
   position: number
 }
 
+export type KeystrokeEvent = {
+  key: string
+  expectedChar: string
+  correct: boolean
+  timestamp: number
+  cursorPosition: number
+  isBackspace: boolean
+}
+
 export type SessionResult = {
   wpm: number
   accuracy: number
@@ -22,4 +31,7 @@ export type SessionResult = {
   totalChars: number
   durationSec: number
   mistakes: Mistake[]
+  targetText: string
+  userInput: string
+  keystrokeEvents?: KeystrokeEvent[]
 }

@@ -42,4 +42,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  patch: <T>(path: string, body: unknown) =>
+    request<T>(path, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
 }

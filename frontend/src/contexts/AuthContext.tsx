@@ -17,6 +17,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string, confirmPassword: string) => Promise<void>
   logout: () => void
+  updateUser: (user: User) => void
   isAuthenticated: boolean
 }
 
@@ -93,6 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const updateUser = useCallback((updated: User) => {
+    setUser(updated)
+    localStorage.setItem(USER_KEY, JSON.stringify(updated))
+  }, [])
+
   return (
     <AuthContext.Provider
       value={{
@@ -101,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         signup,
         logout,
+        updateUser,
         isAuthenticated: !!user,
       }}
     >

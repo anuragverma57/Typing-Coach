@@ -6,6 +6,8 @@ type LiveMetricsProps = {
   targetText: string
   startTime: number | null
   isActive: boolean
+  timeRemainingSec?: number | null
+  durationSec?: number
 }
 
 function formatDuration(ms: number): string {
@@ -15,11 +17,19 @@ function formatDuration(ms: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`
 }
 
+function formatCountdown(sec: number): string {
+  const min = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${min}:${s.toString().padStart(2, '0')}`
+}
+
 export function LiveMetrics({
   userInput,
   targetText,
   startTime,
   isActive,
+  timeRemainingSec = null,
+  durationSec = 0,
 }: LiveMetricsProps) {
   const [, setTick] = useState(0)
 
@@ -36,10 +46,15 @@ export function LiveMetrics({
   for (let i = 0; i < totalChars; i++) {
     if (userInput[i] === targetText[i]) correctChars++
   }
+  const errorCount = totalChars - correctChars
+  const isTimerMode = durationSec > 0 && timeRemainingSec !== null
   const metrics = {
     wpm: startTime && isActive ? calculateWPM(correctChars, durationMs / 1000) : 0,
     accuracy: totalChars > 0 ? calculateAccuracy(correctChars, totalChars) : 100,
-    duration: formatDuration(durationMs),
+    duration: isTimerMode
+      ? formatCountdown(timeRemainingSec)
+      : formatDuration(durationMs),
+    errors: errorCount,
   }
 
   return (
@@ -55,6 +70,10 @@ export function LiveMetrics({
       <span>
         <span className="font-medium text-text-primary">Time</span>{' '}
         {metrics.duration}
+      </span>
+      <span>
+        <span className="font-medium text-text-primary">Errors</span>{' '}
+        {metrics.errors}
       </span>
     </div>
   )

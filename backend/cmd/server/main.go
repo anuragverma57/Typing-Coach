@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"typingcoach/backend/config"
+	"typingcoach/backend/internal/admin"
 	"typingcoach/backend/internal/auth"
 	"typingcoach/backend/internal/database"
 	"typingcoach/backend/internal/lessons"
@@ -81,18 +82,36 @@ func main() {
 	lessonHandler := lessons.NewHandler(lessonRepo)
 	sessionHandler := sessions.NewHandler(sessionRepo)
 	authHandler := auth.NewHandler(authRepo, cfg.JWTSecret)
-	usersHandler := users.NewHandler(sessionRepo)
+	usersHandler := users.NewHandler(authRepo, sessionRepo)
+	adminHandler := admin.NewHandler(authRepo, lessonRepo, sessionRepo)
 
 	app.Post("/api/auth/signup", authHandler.Signup)
 	app.Post("/api/auth/login", authHandler.Login)
 
+	app.Use("/api/lessons", middleware.OptionalAuth(cfg.JWTSecret))
 	app.Get("/api/lessons", lessonHandler.List)
+	app.Get("/api/lessons/:id/content", lessonHandler.GetContent)
 	app.Get("/api/lessons/:id", lessonHandler.GetByID)
+	app.Get("/api/practice/content", lessonHandler.GetPracticeContent)
 
 	app.Use("/api/sessions", middleware.OptionalAuth(cfg.JWTSecret))
 	app.Post("/api/sessions", sessionHandler.Create)
 
+	app.Get("/api/users/me", middleware.Auth(cfg.JWTSecret), usersHandler.GetMe)
+	app.Patch("/api/users/me", middleware.Auth(cfg.JWTSecret), usersHandler.UpdateMe)
+	app.Get("/api/users/me/stats", middleware.Auth(cfg.JWTSecret), usersHandler.GetMyStats)
+	app.Get("/api/users/me/overall-heatmap", middleware.Auth(cfg.JWTSecret), usersHandler.GetOverallHeatmap)
+	app.Get("/api/users/me/sessions/:id", middleware.Auth(cfg.JWTSecret), usersHandler.GetSessionByID)
 	app.Get("/api/users/me/sessions", middleware.Auth(cfg.JWTSecret), usersHandler.GetMySessions)
+
+	app.Post("/api/auth/change-password", middleware.Auth(cfg.JWTSecret), authHandler.ChangePassword)
+
+	app.Get("/api/admin/stats", middleware.AdminAuth(cfg.JWTSecret), adminHandler.GetStats)
+	app.Get("/api/admin/users", middleware.AdminAuth(cfg.JWTSecret), adminHandler.GetUsers)
+	app.Get("/api/admin/lessons", middleware.AdminAuth(cfg.JWTSecret), adminHandler.GetLessons)
+	app.Get("/api/admin/posts", middleware.AdminAuth(cfg.JWTSecret), adminHandler.GetPosts)
+	app.Post("/api/admin/posts/:id/approve", middleware.AdminAuth(cfg.JWTSecret), adminHandler.ApprovePost)
+	app.Post("/api/admin/posts/:id/reject", middleware.AdminAuth(cfg.JWTSecret), adminHandler.RejectPost)
 
 	addr := ":" + cfg.Port
 	log.Printf("Server starting on %s", addr)

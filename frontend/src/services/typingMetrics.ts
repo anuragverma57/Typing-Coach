@@ -12,3 +12,8 @@ export function calculateAccuracy(
   if (totalChars <= 0) return 100
   return Math.round((correctChars / totalChars) * 1000) / 10
 }
+
+export function truncateAtWordBoundary(userInput: string): number {
+  const lastSpace = userInput.lastIndexOf(' ')
+  return lastSpace >= 0 ? lastSpace + 1 : 0
+}

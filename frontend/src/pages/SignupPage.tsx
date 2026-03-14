@@ -20,7 +20,7 @@ export function SignupPage() {
     setLoading(true)
     try {
       await signup(email, password, confirmPassword)
-      navigate('/')
+      navigate('/app/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed')
     } finally {

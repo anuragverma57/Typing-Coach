@@ -13,3 +13,30 @@ export async function fetchLessonById(id: string): Promise<Lesson | null> {
     return null
   }
 }
+
+export async function fetchLessonContent(
+  lessonId: string,
+  durationSec?: number,
+  append?: boolean
+): Promise<string> {
+  const params = new URLSearchParams()
+  if (durationSec && durationSec > 0) params.set('duration', String(durationSec))
+  if (append) params.set('append', 'true')
+  const query = params.toString()
+  const url = `/api/lessons/${lessonId}/content${query ? `?${query}` : ''}`
+  const data = await api.get<{ content: string }>(url)
+  return data?.content ?? ''
+}
+
+export async function fetchPracticeContent(
+  durationSec?: number,
+  append?: boolean
+): Promise<string> {
+  const params = new URLSearchParams()
+  if (durationSec && durationSec > 0) params.set('duration', String(durationSec))
+  if (append) params.set('append', 'true')
+  const query = params.toString()
+  const url = `/api/practice/content${query ? `?${query}` : ''}`
+  const data = await api.get<{ content: string }>(url)
+  return data?.content ?? ''
+}
