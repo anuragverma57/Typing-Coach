@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"typingcoach/backend/config"
+	"typingcoach/backend/internal/adaptive"
 	"typingcoach/backend/internal/admin"
 	"typingcoach/backend/internal/auth"
 	"typingcoach/backend/internal/database"
@@ -93,6 +94,10 @@ func main() {
 	app.Get("/api/lessons/:id/content", lessonHandler.GetContent)
 	app.Get("/api/lessons/:id", lessonHandler.GetByID)
 	app.Get("/api/practice/content", lessonHandler.GetPracticeContent)
+
+	adaptiveHandler := adaptive.NewHandler()
+	app.Get("/api/practice/adaptive-initial", adaptiveHandler.AdaptiveInitial)
+	app.Post("/api/practice/adaptive-next", adaptiveHandler.AdaptiveNext)
 
 	app.Use("/api/sessions", middleware.OptionalAuth(cfg.JWTSecret))
 	app.Post("/api/sessions", sessionHandler.Create)

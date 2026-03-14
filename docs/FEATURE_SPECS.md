@@ -335,11 +335,107 @@ type KeystrokeEvent = {
 
 ---
 
+## Feature 12: AI-Powered Adaptive Practice (Phase 1 — Rule-Based)
+
+**Phase**: 12  
+**Goal**: Personalized practice that adapts to the user's mistakes. Each new line contains more of the letters the user mistyped, helping them improve weak keys.
+
+**USP**: Unlike static typing tests, this mode generates the next line in real time based on the user's mistakes, creating a personalized practice loop.
+
+### How It Works
+
+1. **Start**: User sees 2 lines (~10 words each) from the normal content pool.
+2. **User types line 1**: Frontend tracks mistakes (expected vs typed characters).
+3. **User finishes line 1**: Frontend sends mistakes to backend. User continues to line 2.
+4. **Pre-fetch**: When user is ~70–80% through line 2, frontend calls `POST /api/practice/adaptive-next` with mistakes from line 1 (and optionally line 2 so far).
+5. **Backend**: Extracts weak letters from mistakes, scores words by weak-letter coverage, selects ~10 words, returns next line.
+6. **Append**: When user finishes line 2, line 3 is already loaded. Append to `targetText`. Repeat for line 4, 5, etc.
+
+**Transport**: REST API (no WebSockets). We have 20–60 seconds while the user types — enough time to generate the next line.
+
+**Approach**: Rule-based (no ML/LLM). Word selection by weak-letter coverage. No API keys, no external services.
+
+**Definition of "line"**: A segment of ~10 words. Initial content can be "word1 word2 ... word10 word11 ... word20" — line 1 = words 1–10, line 2 = words 11–20. Split by word count or by newline in content.
+
+### Backend Responsibilities
+
+- **Endpoint** `POST /api/practice/adaptive-next`:
+  - **Payload**: `{ mistakes: [{ expected: string, typed: string }], sessionId?: string }`
+  - **Logic**:
+    1. Extract weak letters: from each mistake, take `expected` (the key user should have typed). Count frequency: e.g. `{ "t": 5, "y": 3, "g": 2 }`.
+    2. If no mistakes, return random line from normal content pool.
+    3. Score words: for each word in pool, count how many weak letters it contains. Weight by mistake frequency. Higher score = more weak letters.
+    4. Sample ~8–10 words (weighted random or top-scored). Ensure variety — don't repeat same word.
+    5. Join with spaces. Return `{ content: string }`.
+  - **Response**: `{ content: string }` — one line, ~10 words.
+
+- **Word pool**:
+  - Use existing content pool (words, sentences) or a dedicated `adaptive_words` list.
+  - Each word must be indexable by letters it contains. Options:
+    - **Option A**: In-memory map `letter → []word` built at startup from JSON/DB.
+    - **Option B**: Words table with `letters` column (e.g. "typing" → "g,i,n,p,t,y") for fast lookup.
+  - Minimum 1000+ words for variety. Prefer common English words.
+
+- **Scoring formula** (example):
+  - For word W, score = sum over weak letters L of (count of L in W × mistakeCount[L])
+  - Example: weak letters { t:5, y:3 }, word "typing" → 5+3 = 8. Word "the" → 5. Prefer "typing".
+
+- **Auth**: Optional. Endpoint can work without auth (anonymous adaptive practice) or require auth to persist session.
+
+### Frontend Responsibilities
+
+- **New mode**: "Adaptive Practice" or "AI Practice" — separate from regular Practice. Add route e.g. `/app/practice/adaptive` or a toggle on Practice page.
+
+- **Initial content**: Fetch 2 lines from `GET /api/practice/content` or `GET /api/lessons/:id/content` (no duration). Display as `line1 + "\n" + line2`. Total ~20 words.
+
+- **Mistake tracking**: Reuse existing mistake/keystroke logic. When user completes a line (reaches newline or end of line text), collect mistakes for that line only. Structure: `[{ expected, typed }]`.
+
+- **Line completion detection**: Track which "line" the user is on (by newline or by character count). When user finishes line N, we have mistakes for line N.
+
+- **Pre-fetch timing**: When `userInput.length >= 0.7 * currentLineLength` (user is 70% through current line), call `POST /api/practice/adaptive-next` with mistakes from the **previous** completed line(s). Store response in state.
+
+- **Append flow**: When user types the last character of current line, append the pre-fetched next line to `targetText` (add space or newline before it). User continues typing without pause.
+
+- **Session continuity**: Accumulate mistakes from all completed lines for the request. E.g. after line 3, send mistakes from lines 1, 2, 3. Backend uses full history to weight weak letters.
+
+- **Fallback**: If adaptive-next fails or returns empty, append a random line from normal content pool so user never stalls.
+
+- **UI**: Show "Adaptive Practice" label. Optional: subtle indicator when next line is "personalized" (e.g. "Next line tailored to your mistakes").
+
+### Data Flow Summary
+
+```
+User types line 1 → mistakes collected
+User finishes line 1 → (mistakes stored, user moves to line 2)
+User at 70% of line 2 → POST /api/practice/adaptive-next { mistakes: line1Mistakes }
+Backend returns line 3
+User finishes line 2 → append line 3 to targetText
+User types line 3 → at 70%, POST with mistakes from line 1+2
+... repeat
+```
+
+### Payload Schema (Reference)
+
+```ts
+// Request
+type AdaptiveNextRequest = {
+  mistakes: { expected: string; typed: string }[]
+  sessionId?: string  // optional, for future session continuity
+}
+
+// Response
+type AdaptiveNextResponse = {
+  content: string  // one line, ~10 words
+}
+```
+
+---
+
 ## Adding New Features
 
 When a new feature is requested, the tutor will:
 
-1. Assign the next feature number (e.g. Feature 12)
+1. Assign the next feature number (e.g. Feature 13)
 2. Add a new section to this document
 3. Fill in Frontend and Backend responsibilities
 4. You can then instruct agents by number
@@ -355,4 +451,9 @@ When a new feature is requested, the tutor will:
 
 - **Backend**: "Implement Feature 11 (Backend) — read docs/FEATURE_SPECS.md. Add keystroke_events_json to sessions. Accept keystrokeEvents in POST /api/sessions. Compute raw errors, corrected/uncorrected errors, weak keys, backspaces per 100 chars, speed over time. Generate insights. Return analytics in GET /api/users/me/sessions/:id."
 - **Frontend**: "Implement Feature 11 (Frontend) — read docs/FEATURE_SPECS.md. Capture keystroke events during typing (key, expectedChar, correct, timestamp, cursorPosition, isBackspace). Send keystrokeEvents with POST /api/sessions. Display analytics in report: raw errors, corrected/uncorrected, weak keys, backspace rate, speed-over-time chart, insights."
+
+## Agent Instructions (Feature 12)
+
+- **Backend**: "Implement Feature 12 (Backend) — read docs/FEATURE_SPECS.md. Add POST /api/practice/adaptive-next. Accept mistakes array. Extract weak letters, score words by weak-letter coverage, return next line. Use word pool (in-memory or DB). No ML."
+- **Frontend**: "Implement Feature 12 (Frontend) — read docs/FEATURE_SPECS.md. Add Adaptive Practice mode. Start with 2 lines. Track mistakes per line. Pre-fetch at 70% of current line. Append next line when user finishes. Call POST /api/practice/adaptive-next with mistakes."
 
