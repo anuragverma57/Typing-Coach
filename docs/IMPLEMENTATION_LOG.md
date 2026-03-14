@@ -54,9 +54,11 @@ Track what's built, when, and current status.
 
 | Feature | Status | Date | Notes |
 |---------|--------|------|-------|
-| 5.1 | Auth (signup, login) | Pending | | |
-| 5.2 | Protected routes | Pending | | |
-| 5.3 | Progress dashboard | Pending | | |
+| 5.1 | Auth (signup, login) | Done | 2025-03-13 | POST /api/auth/signup, POST /api/auth/login, JWT |
+| 5.2 | Protected routes | Done | 2025-03-13 | Auth middleware, OptionalAuth for sessions |
+| 5.3 | Progress dashboard | Done | 2025-03-13 | GET /api/users/me/sessions, POST /api/sessions with user_id |
+| 5.4 | Frontend auth | Done | 2025-03-13 | LoginPage, SignupPage, AuthContext, ProtectedRoute |
+| 5.5 | Frontend dashboard | Done | 2025-03-13 | DashboardPage, session history, Header with logout |
 
 ## Phase 6: Hindi Support
 

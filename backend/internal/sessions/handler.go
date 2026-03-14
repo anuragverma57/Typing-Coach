@@ -2,6 +2,8 @@ package sessions
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+	"typingcoach/backend/internal/middleware"
 )
 
 type Handler struct {
@@ -25,7 +27,12 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid wpm, accuracy, or duration"})
 	}
 
-	session, err := h.repo.Create(req)
+	var userID *uuid.UUID
+	if id, ok := middleware.GetUserID(c); ok {
+		userID = &id
+	}
+
+	session, err := h.repo.Create(req, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
