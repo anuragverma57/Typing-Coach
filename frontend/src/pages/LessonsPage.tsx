@@ -127,6 +127,10 @@ export function LessonsPage() {
     navigate('/app/practice', { state: { lesson: null } })
   }
 
+  const handleAdaptivePractice = () => {
+    navigate('/app/practice/adaptive')
+  }
+
   const handleSelectLesson = (lesson: Lesson) => {
     if (lesson.locked ?? lesson.status === 'locked') return
     navigate('/app/practice', { state: { lesson } })
@@ -176,15 +180,29 @@ export function LessonsPage() {
         </p>
       </div>
 
-      <Card className="space-y-4">
-        <h3 className="text-sm font-medium text-text-secondary">
-          Free Practice
-        </h3>
-        <p className="text-sm text-text-muted">
-          Type a sample paragraph with no specific focus. Good for warming up.
-        </p>
-        <Button onClick={handleFreePractice}>Start Free Practice</Button>
-      </Card>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="space-y-4">
+          <h3 className="text-sm font-medium text-text-secondary">
+            Free Practice
+          </h3>
+          <p className="text-sm text-text-muted">
+            Type a sample paragraph with no specific focus. Good for warming up.
+          </p>
+          <Button onClick={handleFreePractice}>Start Free Practice</Button>
+        </Card>
+        <Card className="space-y-4">
+          <h3 className="text-sm font-medium text-text-secondary">
+            Adaptive Practice
+          </h3>
+          <p className="text-sm text-text-muted">
+            Personalized lines based on your mistakes. Each new line focuses on
+            keys you struggle with.
+          </p>
+          <Button variant="secondary" onClick={handleAdaptivePractice}>
+            Start Adaptive Practice
+          </Button>
+        </Card>
+      </div>
 
       <div className="space-y-6">
         {DIFFICULTY_ORDER.map((difficulty) => {

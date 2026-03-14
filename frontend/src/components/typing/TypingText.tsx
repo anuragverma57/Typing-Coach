@@ -28,7 +28,7 @@ export function TypingText({ targetText, userInput }: TypingTextProps) {
   }, [targetText, userInput]);
 
   return (
-    <div className="font-mono text-xl leading-relaxed tracking-wide text-text-primary break-words overflow-hidden">
+    <div className="font-mono text-xl leading-relaxed tracking-wide text-text-primary break-words overflow-hidden whitespace-pre-wrap">
       {characters.map(({ char, status }, i) => (
         <CharacterDisplay key={i} char={char} status={status} />
       ))}

@@ -1,39 +1,25 @@
 import { useCallback, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { useTypingSession } from '../hooks/useTypingSession'
+import { useAdaptiveTypingSession } from '../hooks/useAdaptiveTypingSession'
 import { createSession } from '../api/sessions'
-import { fetchLessonContent, fetchPracticeContent } from '../api/lessons'
 import { TypingText } from '../components/typing/TypingText'
 import { LiveMetrics } from '../components/typing/LiveMetrics'
 import { SessionControls } from '../components/typing/SessionControls'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
-import type { Lesson } from '../types/lesson'
 import type { SessionResult } from '../types/session'
 
-const DURATION_OPTIONS = [
-  { value: 0, label: 'No limit' },
-  { value: 30, label: '30s' },
-  { value: 60, label: '1 min' },
-  { value: 90, label: '90s' },
-  { value: 120, label: '2 min' },
-] as const
-
-export function TypingPracticePage() {
-  const location = useLocation()
+export function AdaptivePracticePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const lesson = (location.state as { lesson?: Lesson | null })?.lesson ?? null
-
-  const [durationSec, setDurationSec] = useState(0)
   const [contentLoading, setContentLoading] = useState(false)
   const [contentError, setContentError] = useState<string | null>(null)
 
   const onSessionComplete = useCallback(
     async (result: SessionResult) => {
       const payload = {
-        lessonId: lesson?.id ?? null,
+        lessonId: null,
         wpm: result.wpm,
         accuracy: result.accuracy,
         mistakes: result.mistakes,
@@ -47,24 +33,13 @@ export function TypingPracticePage() {
         navigate('/app/report', {
           state: {
             result,
-            lessonName: lesson?.name ?? 'Free Practice',
+            lessonName: 'Adaptive Practice',
           },
         })
       }
     },
-    [lesson?.id, lesson?.name, navigate, user?.id]
+    [navigate, user?.id]
   )
-
-  const onContentExhausted = useCallback(async (): Promise<string> => {
-    try {
-      if (lesson?.id) {
-        return await fetchLessonContent(lesson.id, undefined, true)
-      }
-      return await fetchPracticeContent(undefined, true)
-    } catch {
-      return ''
-    }
-  }, [lesson?.id])
 
   const {
     targetText,
@@ -76,36 +51,20 @@ export function TypingPracticePage() {
     finishSession,
     handleKeyDown,
     inputRef,
-    timeRemainingSec,
-  } = useTypingSession({
-    initialText: '',
-    durationSec,
-    onSessionComplete,
-    onContentExhausted,
-  })
+    nextLinePersonalized,
+  } = useAdaptiveTypingSession({ onSessionComplete })
 
   const handleStart = useCallback(async () => {
     setContentError(null)
     setContentLoading(true)
     try {
-      const content = lesson?.id
-        ? await fetchLessonContent(lesson.id, durationSec > 0 ? durationSec : undefined)
-        : await fetchPracticeContent(durationSec > 0 ? durationSec : undefined)
-      if (content) {
-        startSession(content)
-      } else {
-        setContentError('Failed to load content')
-        startSession()
-      }
+      await startSession()
     } catch {
       setContentError('Failed to load content')
-      startSession()
     } finally {
       setContentLoading(false)
     }
-  }, [durationSec, lesson?.id, startSession])
-
-  const title = lesson?.name ?? 'Free Practice'
+  }, [startSession])
 
   return (
     <div className="space-y-8">
@@ -114,51 +73,24 @@ export function TypingPracticePage() {
           <Button
             variant="ghost"
             className="text-text-muted"
-            onClick={() => navigate('/app/lessons')}
+            onClick={() => navigate('/app/practice')}
           >
             ← Back
           </Button>
-          <Link
-            to="/app/practice/adaptive"
-            className="text-sm text-accent hover:underline"
-          >
-            Adaptive Practice
-          </Link>
         </div>
-        <h2 className="mt-2 text-xl font-medium text-text-primary">{title}</h2>
+        <h2 className="mt-2 text-xl font-medium text-text-primary">
+          Adaptive Practice
+        </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Type the text below. Use keyboard only — no copy-paste.
+          Personalized lines based on your mistakes. Each new line focuses on
+          keys you struggle with.
         </p>
+        {nextLinePersonalized && status === 'typing' && (
+          <p className="mt-2 text-xs text-accent">
+            Next line tailored to your mistakes
+          </p>
+        )}
       </div>
-
-      {status === 'idle' && (
-        <Card className="space-y-4">
-          <p className="text-sm font-medium text-text-secondary">
-            Duration
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {DURATION_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setDurationSec(opt.value)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  durationSec === opt.value
-                    ? 'bg-accent text-white'
-                    : 'bg-surface-muted text-text-secondary hover:bg-surface-muted/80'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-text-muted">
-            {durationSec > 0
-              ? 'Timer mode: session ends when time runs out. Results are truncated at the last completed word.'
-              : 'No limit: finish the full text.'}
-          </p>
-        </Card>
-      )}
 
       <Card className="space-y-6 overflow-hidden">
         <div
@@ -174,8 +106,10 @@ export function TypingPracticePage() {
             readOnly
           />
           {status === 'idle' ? (
-            <div className="font-mono text-xl leading-relaxed tracking-wide text-text-muted break-words">
-              {targetText}
+            <div className="font-mono text-xl leading-relaxed tracking-wide text-text-muted break-words whitespace-pre-wrap">
+              {contentLoading
+                ? 'Loading...'
+                : targetText || 'Click Start to begin'}
             </div>
           ) : (
             <TypingText targetText={targetText} userInput={userInput} />
@@ -192,14 +126,6 @@ export function TypingPracticePage() {
                 100%
               </span>
               <span>
-                <span className="font-medium text-text-primary">
-                  {durationSec > 0 ? 'Time left' : 'Time'}
-                </span>{' '}
-                {durationSec > 0
-                  ? `${Math.floor(durationSec / 60)}:${(durationSec % 60).toString().padStart(2, '0')}`
-                  : '0:00'}
-              </span>
-              <span>
                 <span className="font-medium text-text-primary">Errors</span> 0
               </span>
             </div>
@@ -209,8 +135,8 @@ export function TypingPracticePage() {
               targetText={targetText}
               startTime={startTime}
               isActive={status === 'typing'}
-              timeRemainingSec={timeRemainingSec}
-              durationSec={durationSec}
+              timeRemainingSec={null}
+              durationSec={0}
             />
           )}
           <SessionControls
@@ -218,7 +144,7 @@ export function TypingPracticePage() {
             onStart={handleStart}
             onReset={resetSession}
             onStop={finishSession}
-            showStopButton={durationSec === 0 && status === 'typing'}
+            showStopButton={status === 'typing'}
             startDisabled={contentLoading}
           />
         </div>

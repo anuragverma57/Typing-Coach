@@ -7,6 +7,7 @@ import { AdminGuard } from './components/AdminGuard'
 import { LandingPage } from './pages/LandingPage'
 import { LessonsPage } from './pages/LessonsPage'
 import { TypingPracticePage } from './pages/TypingPracticePage'
+import { AdaptivePracticePage } from './pages/AdaptivePracticePage'
 import { ReportsPage } from './pages/ReportsPage'
 import { ReportPage } from './pages/ReportPage'
 import { SessionReportPage } from './pages/SessionReportPage'
@@ -44,6 +45,7 @@ function App() {
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="practice" element={<TypingPracticePage />} />
+              <Route path="practice/adaptive" element={<AdaptivePracticePage />} />
               <Route path="lessons" element={<LessonsPage />} />
               <Route path="report" element={<ReportPage />} />
               <Route path="reports" element={<ReportsPage />} />
