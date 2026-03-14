@@ -4,5 +4,10 @@ export type Lesson = {
   description: string
   content: string
   type: string
+  difficulty?: string
+  sequenceOrder?: number
+  locked?: boolean
+  progress?: number
+  status?: 'completed' | 'not_started' | 'locked'
   createdAt: string
 }

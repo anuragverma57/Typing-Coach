@@ -21,7 +21,7 @@ export function LoginPage() {
     try {
       await login(email, password)
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname
-      navigate(from ?? '/', { replace: true })
+      navigate(from ?? '/app/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {

@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Mistake } from '../types/session'
+import type { Mistake, KeystrokeEvent } from '../types/session'
 
 type CreateSessionPayload = {
   lessonId?: string | null
@@ -7,15 +7,26 @@ type CreateSessionPayload = {
   accuracy: number
   mistakes: Mistake[]
   durationSec: number
+  keystrokeEvents?: KeystrokeEvent[]
 }
 
-export async function createSession(payload: CreateSessionPayload): Promise<void> {
-  const body = {
+export type CreateSessionResponse = {
+  id: string
+}
+
+export async function createSession(
+  payload: CreateSessionPayload
+): Promise<CreateSessionResponse | null> {
+  const body: Record<string, unknown> = {
     lessonId: payload.lessonId ?? null,
     wpm: payload.wpm,
     accuracy: payload.accuracy,
     mistakes: payload.mistakes,
     durationSec: payload.durationSec,
   }
-  await api.post('/api/sessions', body)
+  if (payload.keystrokeEvents && payload.keystrokeEvents.length > 0) {
+    body.keystrokeEvents = payload.keystrokeEvents
+  }
+  const res = await api.post<CreateSessionResponse>('/api/sessions', body)
+  return res
 }

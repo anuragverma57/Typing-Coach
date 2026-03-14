@@ -63,6 +63,7 @@ typing-coach/
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [UI Revamp Plan](docs/UI_REVAMP.md)
 - [Docker Setup](docs/DOCKER.md)
 - [Feature Specs (Agent Reference)](docs/FEATURE_SPECS.md) — numbered features with Frontend/Backend responsibilities
 - [Implementation Log](docs/IMPLEMENTATION_LOG.md)

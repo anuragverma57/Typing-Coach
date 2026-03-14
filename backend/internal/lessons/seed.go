@@ -2,72 +2,371 @@ package lessons
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 )
 
 var seedLessons = []struct {
-	name        string
-	description string
-	content     string
-	lessonType  string
+	name          string
+	description   string
+	content       string
+	lessonType    string
+	difficulty    string
+	sequenceOrder int
+	locked        bool
 }{
-	{
-		name:        "Beginner",
-		description: "Start with the basics. Type each letter slowly and accurately.",
-		content:     "aaa sss ddd fff ggg hhh jjj kkk lll ;;;\naaa sss ddd fff ggg hhh jjj kkk lll ;;;",
-		lessonType:  "beginner",
+	{name: "Beginner", description: "Start with the basics. Type each letter slowly and accurately.",
+		content: "aaa sss ddd fff ggg hhh jjj kkk lll ;;;\naaa sss ddd fff ggg hhh jjj kkk lll ;;;",
+		lessonType: "beginner", difficulty: "beginner", sequenceOrder: 1, locked: false},
+	{name: "Home Row", description: "Practice the home row keys: a s d f j k l ;",
+		content: "asdf jkl; asdf jkl; asdf jkl;\nfdsa ;lkj fdsa ;lkj fdsa ;lkj",
+		lessonType: "home_row", difficulty: "beginner", sequenceOrder: 2, locked: false},
+	{name: "Top Row", description: "Practice the top row: q w e r t y u i o p",
+		content: "qwert yuiop qwert yuiop\npoiuy trewq poiuy trewq",
+		lessonType: "top_row", difficulty: "beginner", sequenceOrder: 3, locked: false},
+	{name: "Bottom Row", description: "Practice the bottom row: z x c v b n m , . /",
+		content: "zxcvb nm,./ zxcvb nm,./\n/.,mn bvcxz /.,mn bvcxz",
+		lessonType: "bottom_row", difficulty: "beginner", sequenceOrder: 4, locked: false},
+	{name: "Number Row", description: "Practice the number row: 1 2 3 4 5 6 7 8 9 0",
+		content: "12345 67890 09876 54321\n11111 22222 33333 44444 55555",
+		lessonType: "number_row", difficulty: "intermediate", sequenceOrder: 5, locked: false},
+	{name: "Word Typing", description: "Type common words to build speed.",
+		content: "the quick brown fox jumps over the lazy dog\nThe quick brown fox jumps over the lazy dog.",
+		lessonType: "words", difficulty: "beginner", sequenceOrder: 6, locked: false},
+	{name: "Sentence Typing", description: "Practice full sentences with punctuation.",
+		content: "Hello, world! How are you today?\nTyping practice helps improve your skills over time.",
+		lessonType: "sentences", difficulty: "intermediate", sequenceOrder: 7, locked: false},
+	{name: "Paragraph", description: "Practice typing longer paragraphs.",
+		content: "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump!",
+		lessonType: "paragraph", difficulty: "intermediate", sequenceOrder: 8, locked: false},
+	{name: "Speed Challenge", description: "Test your speed with a timed challenge.",
+		content: "Type as fast and accurately as you can. Focus on the home row and build muscle memory.",
+		lessonType: "speed_challenge", difficulty: "advanced", sequenceOrder: 9, locked: false},
+	{name: "Code Typing", description: "Coming soon. Practice typing code snippets.",
+		content: "function hello() { return 'world'; }",
+		lessonType: "code_typing", difficulty: "advanced", sequenceOrder: 10, locked: true},
+}
+
+var contentPools = map[string][]string{
+	"beginner": {
+		"aaa sss ddd fff ggg hhh jjj kkk lll ;;;",
+		"aaa sss ddd fff ggg hhh jjj kkk lll ;;;\naaa sss ddd fff ggg hhh jjj kkk lll ;;;",
+		"fff jjj fff jjj fff jjj fff jjj",
+		"ddd kkk ddd kkk ddd kkk ddd kkk",
+		"sss lll sss lll sss lll sss lll",
+		"aaa ;;; aaa ;;; aaa ;;; aaa ;;;",
+		"asdf asdf asdf jkl; jkl; jkl;",
+		"fff ddd sss aaa ;;; lll kkk jjj",
+		"jkl; asdf jkl; asdf jkl; asdf",
+		"asdfghjkl; asdfghjkl; asdfghjkl;",
+		"aaa sss ddd fff jjj kkk lll ;;;",
+		"f j f j f j f j d k d k d k d k",
+		"s l s l s l s l a ; a ; a ; a ;",
+		"asdf jkl; asdf jkl; asdf jkl;",
+		"fd fd fd fd fd jk jk jk jk jk",
+		"sa sa sa sa sa sa la la la la",
+		"asdfghjkl; ;lkjhgfdsa asdfghjkl;",
+		"aaa sss ddd fff ggg hhh jjj kkk lll",
+		";;; lll kkk jjj hhh ggg fff ddd sss aaa",
+		"asdf jkl; fdsa ;lkj asdf jkl;",
+		"fff jjj ddd kkk sss lll aaa ;;;",
 	},
-	{
-		name:        "Home Row",
-		description: "Practice the home row keys: a s d f j k l ;",
-		content:     "asdf jkl; asdf jkl; asdf jkl;\nfdsa ;lkj fdsa ;lkj fdsa ;lkj",
-		lessonType:  "home_row",
+	"home_row": {
+		"asdf jkl; asdf jkl; asdf jkl;",
+		"fdsa ;lkj fdsa ;lkj fdsa ;lkj",
+		"asdf jkl; fdsa ;lkj asdf jkl;",
+		"asdf asdf asdf jkl; jkl; jkl;",
+		"jkl; asdf jkl; asdf jkl; asdf",
+		"fd fd fd fd jk jk jk jk",
+		"sa sa la la fd fd jk jk",
+		"asdfghjkl; asdfghjkl; asdfghjkl;",
+		";lkjhgfdsa ;lkjhgfdsa ;lkjhgfdsa",
+		"asdf jkl; fdsa ;lkj repeat",
+		"fj fj fj fj dk dk dk dk",
+		"sl sl sl sl a; a; a; a;",
+		"asdf fdsa jkl; ;lkj asdf fdsa",
+		"jkl; ;lkj asdf fdsa jkl; ;lkj",
+		"asdf jkl; asdf jkl; fdsa ;lkj fdsa ;lkj",
 	},
-	{
-		name:        "Top Row",
-		description: "Practice the top row: q w e r t y u i o p",
-		content:     "qwert yuiop qwert yuiop\npoiuy trewq poiuy trewq",
-		lessonType:  "top_row",
+	"top_row": {
+		"qwert yuiop qwert yuiop",
+		"poiuy trewq poiuy trewq",
+		"qwert yuiop poiuy trewq",
+		"qwe rty uio p qwe rty uio p",
+		"q q w w e e r r t t y y u u i i o o p p",
+		"qwerty qwerty qwerty",
+		"yuiop yuiop yuiop",
+		"qwert yuiop qwert yuiop poiuy trewq",
+		"trewq trewq poiuy poiuy",
+		"q w e r t y u i o p p o i u y t r e w q",
+		"qwertyuiop qwertyuiop",
+		"poiuytrewq poiuytrewq",
+		"qq ww ee rr tt yy uu ii oo pp",
+		"qwe asd qwe asd rty fgh rty fgh",
 	},
-	{
-		name:        "Bottom Row",
-		description: "Practice the bottom row: z x c v b n m , . /",
-		content:     "zxcvb nm,./ zxcvb nm,./\n/.,mn bvcxz /.,mn bvcxz",
-		lessonType:  "bottom_row",
+	"bottom_row": {
+		"zxcvb nm,./ zxcvb nm,./",
+		"/.,mn bvcxz /.,mn bvcxz",
+		"zxcvb nm,./ /.,mn bvcxz",
+		"z x c v b n m , . /",
+		"zxcvbnm zxcvbnm zxcvbnm",
+		",./ ,./ ,./ bvcxz bvcxz",
+		"zx zx cv cv bn bn m, m, ./ ./",
+		"zxcvb nm,./ zxcvb nm,./ /.,mn bvcxz",
+		"bvcxz bvcxz ,./ ,./",
+		"z x c v b n m , . / / . , n m b v c x z",
+		"zxcvbnm,./ zxcvbnm,./",
+		"/.,mnbvcxz /.,mnbvcxz",
+		"zz xx cc vv bb nn mm ,, .. //",
+		"zxcv nm,. zxcv nm,. bvcx nm,. bvcx",
 	},
-	{
-		name:        "Word Typing",
-		description: "Type common words to build speed.",
-		content:     "the quick brown fox jumps over the lazy dog\nThe quick brown fox jumps over the lazy dog.",
-		lessonType:  "words",
+	"number_row": {
+		"12345 67890 09876 54321",
+		"11111 22222 33333 44444 55555",
+		"66666 77777 88888 99999 00000",
+		"1234 5678 9012 3456 7890",
+		"0987 6543 2109 8765 4321",
+		"12 34 56 78 90 09 87 65 43 21",
+		"123 456 789 012 345 678 901",
+		"111 222 333 444 555 666 777 888 999 000",
+		"1234567890 0987654321",
+		"1 2 3 4 5 6 7 8 9 0",
+		"55555 44444 33333 22222 11111",
+		"67890 12345 67890 12345",
+		"11111 22222 33333 44444 55555 66666 77777 88888 99999 00000",
+		"12345 12345 67890 67890",
+		"09876 54321 09876 54321",
 	},
-	{
-		name:        "Sentence Typing",
-		description: "Practice full sentences with punctuation.",
-		content:     "Hello, world! How are you today?\nTyping practice helps improve your skills over time.",
-		lessonType:  "sentences",
+	"words": {
+		"the quick brown fox jumps over the lazy dog",
+		"The quick brown fox jumps over the lazy dog.",
+		"quick brown fox jumps over the lazy dog the",
+		"pack my box with five dozen liquor jugs",
+		"how vexingly quick daft zebras jump",
+		"the five boxing wizards jump quickly",
+		"hello world and welcome to typing practice",
+		"practice makes perfect in typing speed",
+		"type each word carefully for accuracy",
+		"keyboard skills improve with daily practice",
+		"the cat sat on the mat near the door",
+		"she sells seashells by the seashore",
+		"a stitch in time saves nine",
+		"birds of a feather flock together",
+		"actions speak louder than words",
+		"all good things come to those who wait",
+		"an apple a day keeps the doctor away",
+		"beauty is in the eye of the beholder",
+		"better late than never they say",
+		"curiosity killed the cat they say",
+		"don't count your chickens before they hatch",
+		"every cloud has a silver lining",
+		"fortune favors the bold and brave",
+		"great minds think alike they say",
+		"honesty is the best policy always",
+		"knowledge is power in every way",
+		"life is what you make of it",
+		"practice makes perfect every day",
+		"time flies when you're having fun",
+		"when in Rome do as the Romans do",
+		"you reap what you sow in life",
+		"the early bird catches the worm",
+		"a penny saved is a penny earned",
+		"two heads are better than one",
+		"where there is a will there is a way",
+		"you can't judge a book by its cover",
+		"the best things in life are free",
+		"slow and steady wins the race",
+		"health is wealth as they say",
+		"never put off until tomorrow",
+		"reading expands your mind and soul",
+		"writing helps you think clearly",
+		"typing faster comes with practice",
+		"keyboard layouts vary by region",
+		"accuracy matters more than speed first",
+		"warm up your fingers before typing",
+		"take breaks to avoid strain",
+		"ergonomics improve your comfort",
+		"touch typing uses muscle memory",
+		"the home row is your anchor",
+		"a picture is worth a thousand words",
+		"break a leg before your performance",
+		"bite the bullet and face your fears",
+		"hit the nail on the head with that answer",
+		"once in a blue moon we get snow",
+		"piece of cake this test was easy",
+		"raining cats and dogs outside today",
+		"see eye to eye on this matter",
+		"spill the beans and tell me everything",
+		"the ball is in your court now",
+		"under the weather feeling unwell",
+		"back to the drawing board we go",
+		"cutting corners will cost you later",
+		"every dog has its day eventually",
+		"get your act together please",
+		"hit the ground running this morning",
+		"in the same boat as you",
+		"let the cat out of the bag",
+		"no pain no gain they say",
+		"on the same page finally",
+		"pull yourself together right now",
+		"the last straw broke the camel",
+		"through thick and thin together",
+		"when pigs fly that will happen",
+		"you hit the jackpot congratulations",
+		"apple of my eye my dear",
+		"blessing in disguise really",
+		"bread and butter of the business",
+		"cold shoulder from her today",
+		"diamond in the rough found one",
+		"drop in the bucket not much",
+		"eleventh hour decision as always",
+		"full of beans today",
+		"green with envy over that",
+		"head in the clouds dreaming",
+		"heart of gold she has",
+		"icing on the cake perfect",
+		"jump on the bandwagon now",
+		"keep your chin up friend",
+		"long story short we agreed",
+		"miss the boat too late",
+		"needle in a haystack impossible",
+		"on cloud nine so happy",
+		"right as rain all good",
+		"shot in the dark guess",
+		"thorn in my side always",
+		"tip of the iceberg just",
+		"up in the air uncertain",
+	},
+	"sentences": {
+		"Hello, world! How are you today?",
+		"Typing practice helps improve your skills over time.",
+		"The quick brown fox jumps over the lazy dog.",
+		"Pack my box with five dozen liquor jugs.",
+		"How vexingly quick daft zebras jump!",
+		"She sells seashells by the seashore.",
+		"The five boxing wizards jump quickly.",
+		"Practice makes perfect in typing skills.",
+		"Time flies when you're having fun.",
+		"All good things come to those who wait.",
+		"An apple a day keeps the doctor away.",
+		"Actions speak louder than words.",
+		"Beauty is in the eye of the beholder.",
+		"Curiosity killed the cat, they say.",
+		"Don't count your chickens before they hatch.",
+		"Every cloud has a silver lining.",
+		"Fortune favors the bold and brave.",
+		"Honesty is the best policy always.",
+		"Knowledge is power in every way.",
+		"Life is what you make of it.",
+		"Never put off until tomorrow what you can do today.",
+		"The early bird catches the worm.",
+		"A penny saved is a penny earned.",
+		"Two heads are better than one.",
+		"Where there is a will, there is a way.",
+		"You can't judge a book by its cover.",
+		"The best things in life are free.",
+		"Slow and steady wins the race.",
+		"Health is wealth, as they say.",
+		"Reading expands your mind and soul.",
+		"Writing helps you think clearly.",
+		"Typing faster comes with consistent practice.",
+		"Accuracy matters more than speed at first.",
+		"Warm up your fingers before typing long sessions.",
+		"Take breaks to avoid strain and fatigue.",
+		"Ergonomics can improve your typing comfort.",
+		"Touch typing relies on muscle memory.",
+		"The journey of a thousand miles begins with a single step.",
+		"Patience is bitter, but its fruit is sweet.",
+		"Success is not final, failure is not fatal.",
+		"It is better to travel well than to arrive.",
+		"The only way to do great work is to love what you do.",
+		"In the middle of difficulty lies opportunity.",
+		"Life is what happens when you're busy making other plans.",
+		"The best time to plant a tree was twenty years ago.",
+		"Do not go where the path may lead; go instead where there is no path.",
+		"You miss one hundred percent of the shots you don't take.",
+		"The only impossible journey is the one you never begin.",
+		"What lies behind us and what lies before us are tiny matters.",
+		"Believe you can and you're halfway there.",
+	},
+	"paragraph": {
+		"The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump!",
+		"Typing practice is essential for improving your skills. Start with the basics and gradually increase your speed. Consistency is key to becoming a proficient typist.",
+		"The early bird catches the worm. This old saying reminds us that getting an early start often leads to success. Make the most of your morning hours.",
+		"Reading expands your mind and opens new worlds. Books transport us to different times and places. Make time for reading every day.",
+		"Practice makes perfect in all aspects of life. Whether learning an instrument or mastering a sport, repetition builds skill. Typing is no different.",
+		"Technology has changed how we communicate. Email and messaging have replaced much of our letter writing. Good typing skills matter more than ever.",
+		"The home row is the foundation of touch typing. Keep your fingers anchored on asdf and jkl. From there, reach for other keys and return.",
+		"Health and wellness should be top priorities. Exercise regularly, eat well, and get enough sleep. Your body will thank you for it.",
+		"Learning never stops, no matter your age. New skills keep your mind sharp and engaged. Embrace every opportunity to grow.",
+		"Patience is a virtue in many situations. Rushing often leads to mistakes. Take your time and do it right the first time.",
+		"The best way to learn is by doing. Reading about typing helps, but practice is essential. Open a text editor and start typing.",
+		"Consistency builds habits that last a lifetime. Small daily efforts compound over time. Start today and stick with it.",
+		"Ergonomics can prevent pain and injury. Position your keyboard and monitor correctly. Your future self will thank you.",
+		"Accuracy matters more than speed when learning. Slow down to build good habits first. Speed will come with practice.",
+		"Music and rhythm can help with typing flow. Some people type to the beat of music. Find what works for you.",
+		"The keyboard has a fascinating history. From typewriters to modern mechanical keys. Each design has shaped how we type.",
+		"Nature provides a peaceful escape from daily stresses. Walking in the woods or by the sea can clear your mind. Many find solace in the sounds of birds and waves.",
+		"Good nutrition forms the foundation of a healthy life. Balanced meals with plenty of vegetables support your body and mind. Stay hydrated and limit processed foods.",
+		"Sleep is essential for both physical and mental recovery. Aim for seven to eight hours of quality rest each night. A consistent schedule helps regulate your body clock.",
+		"Friendship enriches our lives in countless ways. True friends celebrate our successes and support us in difficult times. Invest in relationships that bring you joy and growth.",
+	},
+	"speed_challenge": {
+		"Type as fast and accurately as you can. Focus on the home row and build muscle memory.",
+		"Speed comes from practice and proper technique. Keep your fingers on the home row.",
+		"Accuracy first, then speed. Don't rush and make mistakes.",
+		"Build your WPM gradually. Consistency beats occasional bursts.",
+		"The timer is running. Stay calm and type steadily.",
+		"Every keystroke counts. Focus on each character.",
+		"Warm up before a speed test. Relax your hands and shoulders.",
+		"Challenge yourself daily. Track your progress over time.",
+		"Good posture helps you type faster. Sit up straight.",
+		"Take a deep breath and begin. You've got this.",
+		"Muscle memory develops with repetition. Keep practicing.",
+		"Don't look at the keyboard. Trust your fingers.",
+		"Stay in the zone. Let the words flow naturally.",
+		"Quality over quantity. Accurate typing beats sloppy speed.",
+		"Push yourself but stay relaxed. Tension slows you down.",
+		"Visualize success. See yourself typing smoothly.",
+		"Each session builds skill. Small gains add up.",
+		"Focus on rhythm and flow. Find your typing groove.",
+		"Your fingers know the keys. Let them do the work.",
+		"End strong. Finish the last words with confidence.",
+	},
+	"code_typing": {
+		"function hello() { return 'world'; }",
+		"const sum = (a, b) => a + b;",
+		"if (condition) { doSomething(); }",
+		"for (let i = 0; i < 10; i++) { console.log(i); }",
+		"def main(): return 0",
+		"class User { constructor(name) { this.name = name; } }",
 	},
 }
 
 func Seed(db *sql.DB) error {
-	var count int
-	if err := db.QueryRow("SELECT COUNT(*) FROM lessons").Scan(&count); err != nil {
-		return err
-	}
-	if count > 0 {
-		log.Println("Lessons already seeded, skipping")
-		return nil
-	}
-
 	for _, l := range seedLessons {
-		_, err := db.Exec(`
-			INSERT INTO lessons (name, description, content, type)
-			VALUES ($1, $2, $3, $4)
-		`, l.name, l.description, l.content, l.lessonType)
-		if err != nil {
-			return err
+		var exists bool
+		_ = db.QueryRow("SELECT EXISTS(SELECT 1 FROM lessons WHERE type = $1)", l.lessonType).Scan(&exists)
+		pool := contentPools[l.lessonType]
+		if len(pool) == 0 {
+			pool = []string{l.content}
+		}
+		poolJSON, _ := json.Marshal(pool)
+
+		if exists {
+			_, _ = db.Exec(`UPDATE lessons SET name=$1, description=$2, content=$3, difficulty=$4, sequence_order=$5, locked=$6, content_pool=$7 WHERE type=$8`,
+				l.name, l.description, l.content, l.difficulty, l.sequenceOrder, l.locked, poolJSON, l.lessonType)
+		} else {
+			_, err := db.Exec(`
+				INSERT INTO lessons (name, description, content, type, difficulty, sequence_order, locked, content_pool)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			`, l.name, l.description, l.content, l.lessonType, l.difficulty, l.sequenceOrder, l.locked, poolJSON)
+			if err != nil {
+				log.Printf("Seed lesson %s: %v", l.lessonType, err)
+			}
 		}
 	}
-	log.Printf("Seeded %d lessons", len(seedLessons))
+
+	log.Printf("Lessons seeded (%d total)", len(seedLessons))
 	return nil
 }
