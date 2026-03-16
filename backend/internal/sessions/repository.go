@@ -62,13 +62,18 @@ func (r *Repository) Create(req CreateSessionRequest, userID *uuid.UUID) (*Sessi
 		keystrokeEvents = req.KeystrokeEvents
 	}
 
+	strictMode := false
+	if req.StrictMode != nil {
+		strictMode = *req.StrictMode
+	}
+
 	var id uuid.UUID
 	var createdAt sql.NullTime
 	err := r.db.QueryRow(`
-		INSERT INTO sessions (lesson_id, user_id, wpm, accuracy, mistakes_json, duration_sec, keystroke_events_json)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO sessions (lesson_id, user_id, wpm, accuracy, mistakes_json, duration_sec, keystroke_events_json, strict_mode)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at
-	`, lessonID, userID, req.WPM, req.Accuracy, mistakes, req.DurationSec, keystrokeEvents).Scan(&id, &createdAt)
+	`, lessonID, userID, req.WPM, req.Accuracy, mistakes, req.DurationSec, keystrokeEvents, strictMode).Scan(&id, &createdAt)
 	if err != nil {
 		return nil, err
 	}
@@ -81,6 +86,7 @@ func (r *Repository) Create(req CreateSessionRequest, userID *uuid.UUID) (*Sessi
 		Accuracy:    req.Accuracy,
 		Mistakes:    req.Mistakes,
 		DurationSec: req.DurationSec,
+		StrictMode:  strictMode,
 	}
 	if createdAt.Valid {
 		sess.CreatedAt = createdAt.Time
@@ -157,13 +163,13 @@ func (r *Repository) getByIDAndUserIDRaw(sessionID, userID uuid.UUID, withKeystr
 	var keystrokeEvents []byte
 	s.UserID = &userID
 
-	query := `SELECT s.id, s.lesson_id, s.wpm, s.accuracy, s.mistakes_json, s.duration_sec, s.created_at, l.name`
+	query := `SELECT s.id, s.lesson_id, s.wpm, s.accuracy, s.mistakes_json, s.duration_sec, COALESCE(s.strict_mode, false), s.created_at, l.name`
 	if withKeystrokes {
 		query += `, COALESCE(s.keystroke_events_json, '[]'::jsonb)`
 	}
 	query += ` FROM sessions s LEFT JOIN lessons l ON s.lesson_id = l.id WHERE s.id = $1 AND s.user_id = $2`
 
-	scanDest := []interface{}{&s.ID, &s.LessonID, &s.WPM, &s.Accuracy, &s.Mistakes, &s.DurationSec, &s.CreatedAt, &lessonName}
+	scanDest := []interface{}{&s.ID, &s.LessonID, &s.WPM, &s.Accuracy, &s.Mistakes, &s.DurationSec, &s.StrictMode, &s.CreatedAt, &lessonName}
 	if withKeystrokes {
 		scanDest = append(scanDest, &keystrokeEvents)
 	}

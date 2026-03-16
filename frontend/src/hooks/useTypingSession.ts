@@ -16,6 +16,7 @@ const DEFAULT_TEXT =
 type UseTypingSessionOptions = {
   initialText?: string
   durationSec?: number
+  strictMode?: boolean
   onSessionComplete?: (result: SessionResult) => void
   onContentExhausted?: () => Promise<string>
 }
@@ -34,6 +35,8 @@ type UseTypingSessionReturn = {
   inputRef: React.RefObject<HTMLInputElement | null>
   durationSec: number
   timeRemainingSec: number | null
+  strictModeErrorActive: boolean
+  strictModeErrorsCount: number
 }
 
 export function useTypingSession(
@@ -42,6 +45,7 @@ export function useTypingSession(
   const opts = typeof options === 'string' ? { initialText: options } : options
   const initialText = opts.initialText ?? DEFAULT_TEXT
   const durationSec = opts.durationSec ?? 0
+  const strictMode = opts.strictMode ?? false
   const onSessionComplete = opts.onSessionComplete
   const onContentExhausted = opts.onContentExhausted
   const [targetText, setTargetText] = useState(initialText)
@@ -53,6 +57,10 @@ export function useTypingSession(
   const inputRef = useRef<HTMLInputElement | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const keystrokeEventsRef = useRef<KeystrokeEvent[]>([])
+  const strictModeMistakesRef = useRef<{ expected: string; typed: string; position: number }[]>([])
+  const strictModeErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [strictModeErrorActive, setStrictModeErrorActive] = useState(false)
+  const [strictModeErrorsCount, setStrictModeErrorsCount] = useState(0)
 
   const computeAndFinish = useCallback(
     (text: string, input: string) => {
@@ -74,6 +82,7 @@ export function useTypingSession(
           })
         }
       }
+      mistakes.push(...strictModeMistakesRef.current)
       const elapsedSec =
         startTime !== null ? (Date.now() - startTime) / 1000 : 0
       const wpm = calculateWPM(correctChars, elapsedSec)
@@ -131,6 +140,7 @@ export function useTypingSession(
             })
           }
         }
+        mistakes.push(...strictModeMistakesRef.current)
         const durationSecElapsed = (Date.now() - startTime) / 1000
         const wpm = calculateWPM(correctChars, durationSecElapsed)
         const accuracy = calculateAccuracy(correctChars, totalChars)
@@ -215,6 +225,8 @@ export function useTypingSession(
       setResult(null)
       setTimeRemainingSec(durationSec > 0 ? durationSec : null)
       keystrokeEventsRef.current = []
+      strictModeMistakesRef.current = []
+      setStrictModeErrorsCount(0)
     },
     [durationSec, targetText]
   )
@@ -224,11 +236,17 @@ export function useTypingSession(
       clearInterval(timerRef.current)
       timerRef.current = null
     }
+    if (strictModeErrorTimeoutRef.current) {
+      clearTimeout(strictModeErrorTimeoutRef.current)
+      strictModeErrorTimeoutRef.current = null
+    }
     setUserInput('')
     setStatus('idle')
     setStartTime(null)
     setResult(null)
     setTimeRemainingSec(null)
+    setStrictModeErrorActive(false)
+    setStrictModeErrorsCount(0)
   }, [])
 
   const handleKeyDown = useCallback(
@@ -270,6 +288,23 @@ export function useTypingSession(
           cursorPosition: cursorPos,
           isBackspace: false,
         })
+        if (strictMode && !correct) {
+          strictModeMistakesRef.current.push({
+            expected: expectedChar,
+            typed: e.key,
+            position: cursorPos,
+          })
+          setStrictModeErrorsCount((c) => c + 1)
+          setStrictModeErrorActive(true)
+          if (strictModeErrorTimeoutRef.current) {
+            clearTimeout(strictModeErrorTimeoutRef.current)
+          }
+          strictModeErrorTimeoutRef.current = setTimeout(() => {
+            setStrictModeErrorActive(false)
+            strictModeErrorTimeoutRef.current = null
+          }, 200)
+          return
+        }
         const newInput = userInput + e.key
         setUserInput(newInput)
 
@@ -297,6 +332,7 @@ export function useTypingSession(
       userInput,
       targetText,
       startTime,
+      strictMode,
       finishSession,
       durationSec,
       onContentExhausted,
@@ -323,5 +359,7 @@ export function useTypingSession(
     inputRef,
     durationSec,
     timeRemainingSec,
+    strictModeErrorActive,
+    strictModeErrorsCount,
   }
 }

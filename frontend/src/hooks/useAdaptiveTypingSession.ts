@@ -50,6 +50,7 @@ function getMistakesForRange(
 }
 
 type UseAdaptiveTypingSessionOptions = {
+  strictMode?: boolean
   onSessionComplete?: (result: SessionResult) => void
 }
 
@@ -65,11 +66,14 @@ type UseAdaptiveTypingSessionReturn = {
   handleKeyDown: (e: React.KeyboardEvent) => void
   inputRef: React.RefObject<HTMLInputElement | null>
   nextLinePersonalized: boolean
+  strictModeErrorActive: boolean
+  strictModeErrorsCount: number
 }
 
 export function useAdaptiveTypingSession(
   options: UseAdaptiveTypingSessionOptions = {}
 ): UseAdaptiveTypingSessionReturn {
+  const strictMode = options.strictMode ?? false
   const onSessionComplete = options.onSessionComplete
   const [targetText, setTargetText] = useState('')
   const [userInput, setUserInput] = useState('')
@@ -80,8 +84,12 @@ export function useAdaptiveTypingSession(
   const inputRef = useRef<HTMLInputElement | null>(null)
   const keystrokeEventsRef = useRef<KeystrokeEvent[]>([])
   const accumulatedMistakesRef = useRef<AdaptiveMistake[]>([])
+  const strictModeMistakesRef = useRef<{ expected: string; typed: string; position: number }[]>([])
+  const strictModeErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prefetchTriggeredForLineRef = useRef<number>(-1)
   const completedLineEndsRef = useRef<Set<number>>(new Set())
+  const [strictModeErrorActive, setStrictModeErrorActive] = useState(false)
+  const [strictModeErrorsCount, setStrictModeErrorsCount] = useState(0)
 
   const finishSessionManually = useCallback(() => {
     if (startTime === null) return
@@ -99,6 +107,7 @@ export function useAdaptiveTypingSession(
         })
       }
     }
+    mistakes.push(...strictModeMistakesRef.current)
     const elapsedSec = (Date.now() - startTime) / 1000
     const wpm = calculateWPM(correctChars, elapsedSec)
     const accuracy = calculateAccuracy(correctChars, totalChars)
@@ -136,16 +145,24 @@ export function useAdaptiveTypingSession(
     setNextLinePersonalized(false)
     keystrokeEventsRef.current = []
     accumulatedMistakesRef.current = []
+    strictModeMistakesRef.current = []
     prefetchTriggeredForLineRef.current = -1
     completedLineEndsRef.current = new Set()
+    setStrictModeErrorsCount(0)
   }, [])
 
   const resetSession = useCallback(() => {
+    if (strictModeErrorTimeoutRef.current) {
+      clearTimeout(strictModeErrorTimeoutRef.current)
+      strictModeErrorTimeoutRef.current = null
+    }
     setUserInput('')
     setStatus('idle')
     setStartTime(null)
     setResult(null)
     setNextLinePersonalized(false)
+    setStrictModeErrorActive(false)
+    setStrictModeErrorsCount(0)
   }, [])
 
   const handleKeyDown = useCallback(
@@ -188,6 +205,23 @@ export function useAdaptiveTypingSession(
         cursorPosition: cursorPos,
         isBackspace: false,
       })
+      if (strictMode && !correct) {
+        strictModeMistakesRef.current.push({
+          expected: expectedChar,
+          typed: e.key,
+          position: cursorPos,
+        })
+        setStrictModeErrorsCount((c) => c + 1)
+        setStrictModeErrorActive(true)
+        if (strictModeErrorTimeoutRef.current) {
+          clearTimeout(strictModeErrorTimeoutRef.current)
+        }
+        strictModeErrorTimeoutRef.current = setTimeout(() => {
+          setStrictModeErrorActive(false)
+          strictModeErrorTimeoutRef.current = null
+        }, 200)
+        return
+      }
       const newInput = userInput + e.key
       setUserInput(newInput)
 
@@ -260,7 +294,7 @@ export function useAdaptiveTypingSession(
           })
       }
     },
-    [status, startTime, userInput, targetText]
+    [status, startTime, userInput, targetText, strictMode]
   )
 
   useEffect(() => {
@@ -281,5 +315,7 @@ export function useAdaptiveTypingSession(
     handleKeyDown,
     inputRef,
     nextLinePersonalized,
+    strictModeErrorActive,
+    strictModeErrorsCount,
   }
 }

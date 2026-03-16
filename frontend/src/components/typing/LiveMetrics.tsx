@@ -8,6 +8,7 @@ type LiveMetricsProps = {
   isActive: boolean
   timeRemainingSec?: number | null
   durationSec?: number
+  strictModeErrors?: number
 }
 
 function formatDuration(ms: number): string {
@@ -30,6 +31,7 @@ export function LiveMetrics({
   isActive,
   timeRemainingSec = null,
   durationSec = 0,
+  strictModeErrors = 0,
 }: LiveMetricsProps) {
   const [, setTick] = useState(0)
 
@@ -46,7 +48,7 @@ export function LiveMetrics({
   for (let i = 0; i < totalChars; i++) {
     if (userInput[i] === targetText[i]) correctChars++
   }
-  const errorCount = totalChars - correctChars
+  const errorCount = totalChars - correctChars + strictModeErrors
   const isTimerMode = durationSec > 0 && timeRemainingSec !== null
   const metrics = {
     wpm: startTime && isActive ? calculateWPM(correctChars, durationMs / 1000) : 0,

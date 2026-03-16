@@ -2,10 +2,12 @@ import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useAdaptiveTypingSession } from '../hooks/useAdaptiveTypingSession'
+import { useStrictMode } from '../hooks/useStrictMode'
 import { createSession } from '../api/sessions'
 import { TypingText } from '../components/typing/TypingText'
 import { LiveMetrics } from '../components/typing/LiveMetrics'
 import { SessionControls } from '../components/typing/SessionControls'
+import { StrictModeToggle } from '../components/typing/StrictModeToggle'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import type { SessionResult } from '../types/session'
@@ -15,6 +17,7 @@ export function AdaptivePracticePage() {
   const { user } = useAuth()
   const [contentLoading, setContentLoading] = useState(false)
   const [contentError, setContentError] = useState<string | null>(null)
+  const [strictMode, setStrictMode] = useStrictMode()
 
   const onSessionComplete = useCallback(
     async (result: SessionResult) => {
@@ -25,6 +28,7 @@ export function AdaptivePracticePage() {
         mistakes: result.mistakes,
         durationSec: Math.round(result.durationSec),
         keystrokeEvents: result.keystrokeEvents,
+        strictMode,
       }
       const created = await createSession(payload).catch(() => null)
       if (user?.id && created?.id) {
@@ -38,7 +42,7 @@ export function AdaptivePracticePage() {
         })
       }
     },
-    [navigate, user?.id]
+    [navigate, user?.id, strictMode]
   )
 
   const {
@@ -52,7 +56,9 @@ export function AdaptivePracticePage() {
     handleKeyDown,
     inputRef,
     nextLinePersonalized,
-  } = useAdaptiveTypingSession({ onSessionComplete })
+    strictModeErrorActive,
+    strictModeErrorsCount,
+  } = useAdaptiveTypingSession({ strictMode, onSessionComplete })
 
   const handleStart = useCallback(async () => {
     setContentError(null)
@@ -92,6 +98,12 @@ export function AdaptivePracticePage() {
         )}
       </div>
 
+      {status === 'idle' && (
+        <Card className="space-y-4">
+          <StrictModeToggle checked={strictMode} onChange={setStrictMode} />
+        </Card>
+      )}
+
       <Card className="space-y-6 overflow-hidden">
         <div
           className="relative cursor-text min-h-[6rem] overflow-hidden w-full"
@@ -112,7 +124,11 @@ export function AdaptivePracticePage() {
                 : targetText || 'Click Start to begin'}
             </div>
           ) : (
-            <TypingText targetText={targetText} userInput={userInput} />
+            <TypingText
+              targetText={targetText}
+              userInput={userInput}
+              currentCharError={strictModeErrorActive}
+            />
           )}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -137,6 +153,7 @@ export function AdaptivePracticePage() {
               isActive={status === 'typing'}
               timeRemainingSec={null}
               durationSec={0}
+              strictModeErrors={strictModeErrorsCount}
             />
           )}
           <SessionControls
