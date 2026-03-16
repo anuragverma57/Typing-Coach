@@ -8,23 +8,25 @@ import (
 )
 
 type Session struct {
-	ID         uuid.UUID       `json:"id"`
-	LessonID   *uuid.UUID      `json:"lessonId,omitempty"`
-	UserID     *uuid.UUID      `json:"userId,omitempty"`
-	WPM        float64         `json:"wpm"`
-	Accuracy   float64         `json:"accuracy"`
-	Mistakes   json.RawMessage `json:"mistakes,omitempty"`
-	DurationSec int            `json:"durationSec"`
-	CreatedAt  time.Time       `json:"createdAt"`
+	ID          uuid.UUID       `json:"id"`
+	LessonID    *uuid.UUID      `json:"lessonId,omitempty"`
+	UserID      *uuid.UUID      `json:"userId,omitempty"`
+	WPM         float64         `json:"wpm"`
+	Accuracy    float64         `json:"accuracy"`
+	Mistakes    json.RawMessage `json:"mistakes,omitempty"`
+	DurationSec int             `json:"durationSec"`
+	StrictMode  bool            `json:"strictMode,omitempty"`
+	CreatedAt   time.Time       `json:"createdAt"`
 }
 
 type CreateSessionRequest struct {
-	LessonID         *string         `json:"lessonId,omitempty"`
-	WPM              float64         `json:"wpm"`
-	Accuracy         float64         `json:"accuracy"`
-	Mistakes         json.RawMessage `json:"mistakes,omitempty"`
-	DurationSec      int             `json:"durationSec"`
-	KeystrokeEvents  json.RawMessage `json:"keystrokeEvents,omitempty"`
+	LessonID        *string         `json:"lessonId,omitempty"`
+	WPM             float64         `json:"wpm"`
+	Accuracy        float64         `json:"accuracy"`
+	Mistakes        json.RawMessage `json:"mistakes,omitempty"`
+	DurationSec     int             `json:"durationSec"`
+	KeystrokeEvents json.RawMessage `json:"keystrokeEvents,omitempty"`
+	StrictMode      *bool           `json:"strictMode,omitempty"`
 }
 
 type KeystrokeEvent struct {

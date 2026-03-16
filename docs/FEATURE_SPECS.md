@@ -431,11 +431,56 @@ type AdaptiveNextResponse = {
 
 ---
 
+## Feature 13: Strict Mode Toggle
+
+**Phase**: 13  
+**Goal**: User cannot advance to the next character until they type the correct one. Wrong keys are ignored (or shown briefly but not accepted). Enforces accuracy over speed.
+
+**Placement**: Toggle in every practice arena — Practice, Lessons, Adaptive Practice.
+
+### Behavior
+
+- **Strict mode ON**: Wrong key presses do not advance. User must type the correct character to move forward. When wrong key is pressed: show red on current character, capture the mistake, increment error count. Backspace works to delete and retry.
+- **Strict mode OFF**: Current behavior — wrong keys are accepted, user can type past mistakes and fix later.
+
+### Frontend Responsibilities (Frontend Only — No Backend Changes)
+
+- **Toggle UI**: Add "Strict mode" toggle (switch or checkbox) in the pre-start area of each practice arena. Place near duration selector or session controls. Label: "Strict mode" with short description: "Must type correct character to advance."
+- **State**: Store `strictMode: boolean` in component state. Optional: persist in `localStorage` (e.g. `typing-coach-strict-mode`) so preference survives refresh.
+- **Logic**: In `handleKeyDown` (or equivalent), when `strictMode` is true:
+  - If key is correct → accept and advance (current behavior).
+  - If key is wrong → do **not** append to `userInput`. Do **all** of the following:
+    - **Show red**: Current character (the one user should type) turns red or flashes red. Visual feedback that a wrong key was pressed.
+    - **Capture mistake**: Add to mistakes array: `{ expected: targetChar, typed: pressedKey, position: cursorPos }`. Include in keystroke events: `{ key, expectedChar, correct: false, ... }`.
+    - **Increment error count**: Update the live error count (Errors metric). Include in final session result.
+  - Backspace → always allowed (user can delete and retry).
+- **Mistake tracking**: Wrong keys in strict mode are still recorded and sent with `POST /api/sessions` (mistakes array, keystrokeEvents). Backend receives them as usual — no backend changes needed.
+- **Apply everywhere**: Practice page (`TypingPracticePage`), Lessons (typing view), Adaptive Practice (`AdaptivePracticePage`). Each arena has its own toggle; or use a shared context/preference.
+- **Default**: Strict mode OFF by default. Optional: Lessons default to ON, Practice/Adaptive default to OFF.
+- **Session payload**: Include `strictMode: boolean` in `POST /api/sessions` payload so backend can record it for analytics (optional).
+
+### Backend Responsibilities
+
+- **No changes required** for mistake capture, error count, or red feedback — all handled by frontend. Existing `POST /api/sessions` already accepts `mistakes` and `keystrokeEvents`; frontend sends them for strict-mode wrong keys too.
+- **Schema** (optional): Add `strict_mode` boolean column to `sessions` table if we want to store it.
+- **POST /api/sessions**: Accept optional `strictMode` in payload. Store in DB if column exists. No change required if we skip persistence.
+- **Analytics** (optional): If stored, `GET /api/users/me/sessions/:id` can return `strictMode` for report display (e.g. "Strict mode session").
+
+### Summary
+
+| Arena            | Toggle | Default |
+|------------------|--------|---------|
+| Practice         | Yes    | OFF     |
+| Lessons          | Yes    | OFF (or ON) |
+| Adaptive Practice| Yes    | OFF     |
+
+---
+
 ## Adding New Features
 
 When a new feature is requested, the tutor will:
 
-1. Assign the next feature number (e.g. Feature 13)
+1. Assign the next feature number (e.g. Feature 14)
 2. Add a new section to this document
 3. Fill in Frontend and Backend responsibilities
 4. You can then instruct agents by number
@@ -456,4 +501,9 @@ When a new feature is requested, the tutor will:
 
 - **Backend**: "Implement Feature 12 (Backend) — read docs/FEATURE_SPECS.md. Add POST /api/practice/adaptive-next. Accept mistakes array. Extract weak letters, score words by weak-letter coverage, return next line. Use word pool (in-memory or DB). No ML."
 - **Frontend**: "Implement Feature 12 (Frontend) — read docs/FEATURE_SPECS.md. Add Adaptive Practice mode. Start with 2 lines. Track mistakes per line. Pre-fetch at 70% of current line. Append next line when user finishes. Call POST /api/practice/adaptive-next with mistakes."
+
+## Agent Instructions (Feature 13)
+
+- **Backend**: "Implement Feature 13 (Backend) — read docs/FEATURE_SPECS.md. Add optional strict_mode column to sessions. Accept strictMode in POST /api/sessions. Return in GET /api/users/me/sessions/:id if stored. No changes needed for mistake capture — frontend handles it."
+- **Frontend**: "Implement Feature 13 (Frontend) — read docs/FEATURE_SPECS.md. Add Strict mode toggle in Practice, Lessons, Adaptive Practice. When ON: wrong keys do not advance; show current character in red, capture mistake, increment error count. Send mistakes and keystrokeEvents to backend. Backspace always allowed. Optional: persist preference in localStorage."
 

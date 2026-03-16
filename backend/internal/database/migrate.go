@@ -53,6 +53,7 @@ func MigratePostgres(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at)`,
 		`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS keystroke_events_json JSONB`,
+		`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS strict_mode BOOLEAN DEFAULT false`,
 	}
 
 	for _, q := range queries {

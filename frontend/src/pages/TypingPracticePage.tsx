@@ -2,11 +2,13 @@ import { useCallback, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTypingSession } from '../hooks/useTypingSession'
+import { useStrictMode } from '../hooks/useStrictMode'
 import { createSession } from '../api/sessions'
 import { fetchLessonContent, fetchPracticeContent } from '../api/lessons'
 import { TypingText } from '../components/typing/TypingText'
 import { LiveMetrics } from '../components/typing/LiveMetrics'
 import { SessionControls } from '../components/typing/SessionControls'
+import { StrictModeToggle } from '../components/typing/StrictModeToggle'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import type { Lesson } from '../types/lesson'
@@ -29,6 +31,7 @@ export function TypingPracticePage() {
   const [durationSec, setDurationSec] = useState(0)
   const [contentLoading, setContentLoading] = useState(false)
   const [contentError, setContentError] = useState<string | null>(null)
+  const [strictMode, setStrictMode] = useStrictMode()
 
   const onSessionComplete = useCallback(
     async (result: SessionResult) => {
@@ -39,6 +42,7 @@ export function TypingPracticePage() {
         mistakes: result.mistakes,
         durationSec: Math.round(result.durationSec),
         keystrokeEvents: result.keystrokeEvents,
+        strictMode,
       }
       const created = await createSession(payload).catch(() => null)
       if (user?.id && created?.id) {
@@ -52,7 +56,7 @@ export function TypingPracticePage() {
         })
       }
     },
-    [lesson?.id, lesson?.name, navigate, user?.id]
+    [lesson?.id, lesson?.name, navigate, user?.id, strictMode]
   )
 
   const onContentExhausted = useCallback(async (): Promise<string> => {
@@ -77,9 +81,12 @@ export function TypingPracticePage() {
     handleKeyDown,
     inputRef,
     timeRemainingSec,
+    strictModeErrorActive,
+    strictModeErrorsCount,
   } = useTypingSession({
     initialText: '',
     durationSec,
+    strictMode,
     onSessionComplete,
     onContentExhausted,
   })
@@ -157,6 +164,12 @@ export function TypingPracticePage() {
               ? 'Timer mode: session ends when time runs out. Results are truncated at the last completed word.'
               : 'No limit: finish the full text.'}
           </p>
+          <div className="pt-4 border-t border-[var(--color-border)]">
+            <StrictModeToggle
+              checked={strictMode}
+              onChange={setStrictMode}
+            />
+          </div>
         </Card>
       )}
 
@@ -178,7 +191,11 @@ export function TypingPracticePage() {
               {targetText}
             </div>
           ) : (
-            <TypingText targetText={targetText} userInput={userInput} />
+            <TypingText
+              targetText={targetText}
+              userInput={userInput}
+              currentCharError={strictModeErrorActive}
+            />
           )}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -211,6 +228,7 @@ export function TypingPracticePage() {
               isActive={status === 'typing'}
               timeRemainingSec={timeRemainingSec}
               durationSec={durationSec}
+              strictModeErrors={strictModeErrorsCount}
             />
           )}
           <SessionControls

@@ -8,6 +8,7 @@ type CreateSessionPayload = {
   mistakes: Mistake[]
   durationSec: number
   keystrokeEvents?: KeystrokeEvent[]
+  strictMode?: boolean
 }
 
 export type CreateSessionResponse = {
@@ -26,6 +27,9 @@ export async function createSession(
   }
   if (payload.keystrokeEvents && payload.keystrokeEvents.length > 0) {
     body.keystrokeEvents = payload.keystrokeEvents
+  }
+  if (payload.strictMode !== undefined) {
+    body.strictMode = payload.strictMode
   }
   const res = await api.post<CreateSessionResponse>('/api/sessions', body)
   return res
